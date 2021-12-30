@@ -21,11 +21,6 @@ GenSettings = (vars(parser.parse_args())["GenSettings"])
 '''FORMAT ---->   ("Option", "Default", "This is a description"), '''
 
 defaultSettings = [
-    ("PORT", 80, "Try 6667 if this doesn't work. Use 443 or 6697 for SSL. Don't touch otherwise."),
-    ("BOT OAUTH", "", "To get this oauth code, head here and log in with YOUR BOT'S account: https://twitchapps.com/tmi/"),
-    ("BOT NAME", "", "Your bot's Twitch username, all lowercase."),
-    ("CHANNEL", "", "Your Twitch username, all lowercase."),
-    ("", "", ""),
     ("TRIGGER MESSAGE", "", "The message from another bot that will trigger this bot's main function.,"),
     ("TRIGGER USER", "CreatisBot", "Only this user can send the TRIGGER MESSAGE and trigger the bot."),
 ]
@@ -91,6 +86,8 @@ class settingsConfig:
         except:
             stopBot("Can't open the Settings file. Please close it and make sure it's not set to Read Only. [0]")
 
+
+
     def reloadSettings(self, tmpSettings):
         for item in tmpSettings:
             for i in enumerate(defaultSettings):
@@ -125,7 +122,6 @@ class settingsConfig:
             stopBot("The settings have been changed with an update! Please check your Settings.xlsx file then restart the bot.")
         return settings
 
-
     def settingsSetup(self):
         global settings
 
@@ -143,18 +139,49 @@ class settingsConfig:
 
         settings = self.readSettings(wb)
 
-        # Check Settings
-        if str(int(settings["PORT"])) not in ('80', '6667', '443', '6697'):  # Convert into non-float string
-            stopBot("Wrong Port! The port must be 80 or 6667 for standard connections, or 443 or 6697 for SSL")
-        if not settings['BOT OAUTH']:
-            stopBot("Missing BOT OAUTH - Please follow directions in the settings or readme.")
-        if not ('oauth:' in settings['BOT OAUTH']):
-            stopBot("Invalid BOT OAUTH - Your oauth should start with 'oauth:'")
-        if not settings['BOT NAME'] or not settings['CHANNEL']:
-            stopBot("Missing BOT NAME or CHANNEL")
+        if not os.path.exists("../Config/token.txt"):
+            stopBot("No auth token exists, run INSTALL_REQUIREMENTS in the Setup folder and authenticate!")
 
         print(">> Initial Checkup Complete! Connecting to Chat...")
         return settings
+
+    def formatCommandsxlsx(self):
+        try:
+            with xlsxwriter.Workbook('../Config/Commands.xlsx') as workbook:  # FORMATTING
+
+                format = workbook.add_format(
+                    {'bold': True, 'center_across': True, 'font_color': 'white', 'bg_color': 'gray'})
+                lightformat = workbook.add_format(
+                    {'center_across': True, 'font_color': 'black', 'bg_color': '#DCDCDC', 'border': True})
+                evenlighterformat = workbook.add_format(
+                    {'font_color': 'black', 'bg_color': '#f0f0f0', 'border': True})
+                redformat = workbook.add_format({'font_color': 'black', 'bg_color': '#ffdede', 'border': True})
+
+                worksheet = workbook.add_worksheet("Commands")  # FORMAT GLOBAL
+                worksheet.set_column(0, 0, 30)
+                worksheet.set_column(1, 1, 110)
+                worksheet.write(0, 0, "Command", format)
+                worksheet.write(0, 1, "Response", format)
+                worksheet.set_column('B:B', 110, evenlighterformat)
+
+            print("Commands.xlsx has been updated successfully.")
+        except PermissionError:
+            stopBot("Can't open the settings file. Please close it and make sure it's not set to Read Only")
+
+    def readCommands(self):
+        wb = xlrd.open_workbook('../Config/Commands.xlsx')
+        commandsFromFile = {}
+        worksheet = wb.sheet_by_name("Commands")
+
+        for item in range(worksheet.nrows):
+            if item == 0:
+                pass
+            else:
+                command = worksheet.cell_value(item, 0)
+                response = str(worksheet.cell_value(item, 1))
+                commandsFromFile[command] = response
+
+        return commandsFromFile
 
 
 def buildConfig():
@@ -168,6 +195,10 @@ def buildConfig():
         print("Please follow the setup guide to everything set up! https://rxbots.net/rxbot-setup.html")
         time.sleep(3)
         quit()
+
+    if not os.path.exists('../Config/Commands.xlsx'):
+        settingsConfig.formatCommandsxlsx(settingsConfig())
+        print("\nCommands file has been created.")
     else:
         print("Everything is already set up!")
 

@@ -12,43 +12,7 @@ try:
 except ImportError as e:
     print(e)
     raise ImportError(">>> One or more required packages are not properly installed! Run INSTALL_REQUIREMENTS.bat to fix!")
-global settings
-
-class socketConnection:
-    def __init__(self):
-        self.socketConn = socket.socket()
-
-    def openSocket(self):
-        self.socketConn.connect(("irc.chat.twitch.tv", int(settings['PORT'])))
-        self.socketConn.send(("PASS " + settings['BOT OAUTH'] + "\r\n").encode("utf-8"))
-        self.socketConn.send(("NICK " + settings['BOT NAME'] + "\r\n").encode("utf-8"))
-        self.socketConn.send(("JOIN #" + settings['CHANNEL'] + "\r\n").encode("utf-8"))
-        return self.socketConn
-
-    def sendMessage(self, message):
-        print(message)
-        messageTemp = "PRIVMSG #" + settings['CHANNEL'] + " : " + message
-        self.socketConn.send((messageTemp + "\r\n").encode("utf-8"))
-        print("Sent: " + messageTemp)
-
-    def joinRoom(self, s):
-        readbuffer = ""
-        Loading = True
-
-        while Loading:
-            readbuffer = readbuffer + s.recv(1024).decode("utf-8")
-            temp = readbuffer.split("\n")
-            readbuffer = temp.pop()
-
-            for line in temp:
-                Loading = self.loadingComplete(line)
-
-    def loadingComplete(self, line):
-        if ("End of /NAMES list" in line):
-            print(">> Bot Startup complete!")
-            return False
-        else:
-            return True
+global settings, commandsFromFile
 
 class coreFunctions:
     def __init__(self):
@@ -66,27 +30,24 @@ class coreFunctions:
 
         return moderators
 
-
-
-
-
-chatConnection = socketConnection()
 core = coreFunctions()
 
 def initSetup():
-    global settings
-
+    global settings, commandsFromFile
 
     # Create Folders
     if not os.path.exists('../Config'):
+        buildConfig()
+    if not os.path.exists('../Config/Commands.xlsx'):
         buildConfig()
     if not os.path.exists('Resources'):
         os.makedirs('Resources')
         print("Creating necessary folders...")
 
     # Create Settings.xlsx
-    loadedsettings = settingsConfig.settingsSetup(settingsConfig())
-    settings = loadedsettings
+    settings = settingsConfig.settingsSetup(settingsConfig())
+    commandsFromFile = settingsConfig.readCommands(settingsConfig())
 
     return
+
 
