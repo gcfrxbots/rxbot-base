@@ -2,29 +2,7 @@ from threading import Thread
 from Initialize import *
 initSetup()
 from CustomCommands import *
-from websocket import create_connection
-customcmds = CustomCommands()
-
-
-
-
-class runMiscControls:
-
-    def __init__(self):
-        pass
-
-    def getUser(self, line):
-        seperate = line.split(":", 2)
-        user = seperate[1].split("!", 1)[0]
-        return user
-
-    def getMessage(self, line):
-        seperate = line.split(":", 2)
-        message = seperate[2]
-        return message
-
-    def formatTime(self):
-        return datetime.datetime.today().now().strftime("%I:%M")
+from Authenticate import *
 
 
 def runcommand(command, cmdArguments, user, mute):
@@ -65,7 +43,7 @@ def runcommand(command, cmdArguments, user, mute):
 
     chatConnection.sendToChat(user + " >> " + output)
 
-
+# TODO - Move this to initialize like Claymore's bot.
 class chat:
     def __init__(self):
         self.ws = None
@@ -94,7 +72,7 @@ class chat:
         self.ws.send(json.dumps(loginRequest))
 
     def puppetlogin(self):
-        time.sleep(1)
+        time.sleep(1.5)
         loginRequest = {
             "type": "PUPPET_LOGIN",
             "token": self.puppetToken
@@ -123,10 +101,11 @@ class chat:
         self.ws = create_connection(self.url)
         self.login()
         while True:
-            time.sleep(0.2)
             result = self.ws.recv()
             resultDict = json.loads(result)
-            #print(resultDict)
+            print(resultDict)
+            if debugMode:
+                print(resultDict)
             if "event" in resultDict.keys() and not self.active:
                 if "is_live" in resultDict["event"]:
                     print(">> Connection to chat successful!")
@@ -138,21 +117,6 @@ class chat:
 
             if "event" in resultDict.keys():  # Any actual event is under this
                 eventKeys = resultDict["event"].keys()
-                if "message" in eventKeys:  # Got chat message, display it then process commands
-                    try:
-                        message = resultDict["event"]["message"]
-                        user = resultDict["event"]["sender"]["displayname"]
-                        command = ((message.split(' ', 1)[0]).lower()).replace("\r", "")
-                        cmdarguments = message.replace(command or "\r" or "\n", "")[1:]
-                        print("(" + misc.formatTime() + ")>> " + user + ": " + message)
-                        for cmdFromFile in commandsFromFile:
-                            if command.lower() == cmdFromFile.lower():
-                                chatConnection.sendToChat(commandsFromFile[cmdFromFile])
-
-                        if command[0] == "!":  # Only run normal commands if COMMAND PHRASE is blank
-                            runcommand(command, cmdarguments, user, False)
-                    except:
-                        pass
 
                 if "reward" in eventKeys:
                     try:
@@ -179,12 +143,42 @@ class chat:
                         message = resultDict["event"]["message"]
                         print("(" + misc.formatTime() + ")>> " + user + " cheered %s bits with the message %s" % (bitsAmount, message))
 
+
+                if "message" in eventKeys:  # Got chat message, display it then process commands
+                    try:
+                        message = resultDict["event"]["message"]
+                        user = resultDict["event"]["sender"]["displayname"]
+                        command = ((message.split(' ', 1)[0]).lower()).replace("\r", "")
+                        cmdarguments = message.replace(command or "\r" or "\n", "")[1:]
+                        print("(" + misc.formatTime() + ")>> " + user + ": " + message)
+                        for cmdFromFile in commandsFromFile:
+                            if command.lower() == cmdFromFile.lower():
+                                chatConnection.sendToChat(commandsFromFile[cmdFromFile])
+
+                        if command[0] == "!":  # Only run normal commands if COMMAND PHRASE is blank
+                            runcommand(command, cmdarguments, user, False)
+                    except:
+                        pass
+
             if "disclaimer" in resultDict.keys():  # Should just be keepalives?
                 if resultDict["type"] == "KEEP_ALIVE":
                     response = {"type": "KEEP_ALIVE"}
                     self.sendRequest(response)
 
+            if "error" in resultDict.keys():
+                print("CHAT CONNECTION ERROR : " + resultDict["error"])
+                if resultDict['error'] == "USER_AUTH_INVALID":
+                    print("Channel Auth Token Expired or Invalid - Reauthenticating...")
+                    authChatConnection.main("main")
+                elif resultDict['error'] == "PUPPET_AUTH_INVALID":
+                    print("Bot Account Auth Token Expired or Invalid -  Reauthenticating...")
+                    authChatConnection.main("main")
+                else:
+                    print("Please report this error to rxbots so we can get it resolved.")
+                    print("Try running RXBOT_DEBUG.bat in the RxBot folder to get more info on this error to send to me.")
+
 chatConnection = chat()
+
 
 def console():  # Thread to handle console input
     while True:
@@ -201,13 +195,29 @@ def console():  # Thread to handle console input
                 print("Shutting down")
                 os._exit(1)
 
+def tick():
+    prevTime = datetime.datetime.now()
+    while True:
+        time.sleep(0.4)
+
+        if misc.timerActive:
+            for timer in misc.timers:
+                if datetime.datetime.now() > misc.timers[timer]:
+                    misc.timerDone(timer)
+                    break
+
+        # Timers that send stuff every X seconds
+
+        # if datetime.datetime.now() > prevTime + datetime.timedelta(minutes=settings["TIMER DELAY"]):
+        #     chatConnection.sendToChat(resources.askChatAQuestion())
+        #     prevTime = datetime.datetime.now()
+
 
 if __name__ == "__main__":
-    misc = runMiscControls()
-
     t1 = Thread(target=chatConnection.main)
     t2 = Thread(target=console)
+    t3 = Thread(target=tick)
 
     t1.start()
     t2.start()
-
+    t3.start()

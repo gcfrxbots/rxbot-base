@@ -9,8 +9,12 @@ commands_CustomCommands = {
     "!ccexamplemod": ('MOD', 'customcmds.modexample', 'cmdArguments', 'user'),
 }
 
+class resources:
+    def __init__(self):
+        pass
 
-class CustomCommands():
+
+class CustomCommands:
     def __init__(self):
         pass
 
@@ -27,3 +31,7 @@ class CustomCommands():
 
         # To send the message, return it as a string. Most messages start with 'user + " >> "'
         return "You just ran an example Mod-Only custom command. Your args were " + args
+
+
+customcmds = CustomCommands()
+resources = resources()

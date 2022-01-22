@@ -11,9 +11,11 @@ except ImportError as e:
 
 parser = argparse.ArgumentParser(description='Generate Settings File')
 parser.add_argument('--g', dest="GenSettings", action="store_true")
-parser.set_defaults(GenSettings=False)
+parser.add_argument('--d', dest="debugMode", action="store_true")
+parser.set_defaults(GenSettings=False, debugMode=False)
 
 GenSettings = (vars(parser.parse_args())["GenSettings"])
+debugMode = (vars(parser.parse_args())["debugMode"])
 
 
 '''----------------------SETTINGS----------------------'''
@@ -21,9 +23,10 @@ GenSettings = (vars(parser.parse_args())["GenSettings"])
 '''FORMAT ---->   ("Option", "Default", "This is a description"), '''
 
 defaultSettings = [
-    ("TRIGGER MESSAGE", "", "The message from another bot that will trigger this bot's main function.,"),
-    ("TRIGGER USER", "CreatisBot", "Only this user can send the TRIGGER MESSAGE and trigger the bot."),
+    ("CHANNEL", "", "Your Twitch username, all lowercase."),
+    ("BOT ACCOUNT", "", "Your bot's Twitch username, all lowercase."),
 ]
+
 
 
 def stopBot(err):

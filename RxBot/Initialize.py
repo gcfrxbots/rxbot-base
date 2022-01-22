@@ -51,3 +51,36 @@ def initSetup():
     return
 
 
+class runMiscControls:
+
+    def __init__(self):
+        self.timerActive = False
+        self.timers = {}
+
+    def getUser(self, line):
+        seperate = line.split(":", 2)
+        user = seperate[1].split("!", 1)[0]
+        return user
+
+    def getMessage(self, line):
+        seperate = line.split(":", 2)
+        message = seperate[2]
+        return message
+
+    def formatTime(self):
+        return datetime.datetime.today().now().strftime("%I:%M")
+
+    def setTimer(self, name, duration):
+        self.timerActive = True
+        curTime = datetime.datetime.now()
+        targetTime = curTime + datetime.timedelta(seconds=duration)
+        self.timers[name] = targetTime
+
+    def timerDone(self, timer):
+        self.timers.pop(timer)
+        print(timer + " timer complete.")
+        if not self.timers:
+            self.timerActive = False
+
+
+misc = runMiscControls()
