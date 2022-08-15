@@ -1,10 +1,12 @@
 import os
 import time
 import argparse
+import sys
 
 try:
     import xlrd
     import xlsxwriter
+    from discord import Webhook, RequestsWebhookAdapter
 except ImportError as e:
     print(e)
     raise ImportError(">>> One or more required packages are not properly installed! Run INSTALL_REQUIREMENTS.bat to fix!")
@@ -23,8 +25,12 @@ debugMode = (vars(parser.parse_args())["debugMode"])
 '''FORMAT ---->   ("Option", "Default", "This is a description"), '''
 
 defaultSettings = [
-    ("CHANNEL", "", "Your Twitch username, all lowercase."),
-    ("BOT ACCOUNT", "", "Your bot's Twitch username, all lowercase."),
+    ("RESOLUTION MODIFIER", "100", "Lower than 100 to lower resolution, greater than 100 to raise resolution. Built in 1440p - Set to 75 for 1080p."),
+    ("DEBUG SHOW IMAGE", "No", "Shows the image used for OCR whenever it is captured. Only set to Yes for testing."),
+    ("ALTERNATIVE SCREENSHOT", "No", "Turn to Yes to use a multi-monitor screewanshot function for testing, or No to use default."),
+    ("IMAGE OFFSET", "0", "Use to fine tune OCR accuracy. Increase for bolder text, decrease for less bold. Use with DEBUG SHOW IMAGE to visualize your changes."),
+    ("ID IMAGE OFFSET", "0", "Use to fine tune OCR accuracy for IDs only (#12345). Increase for bolder text, decrease for less bold. Use with DEBUG SHOW IMAGE to visualize your changes."),
+    ("HANDS OFFSET", "0", "Use to fine tune OCR accuracy for HAND values only. Increase for bolder text, decrease for less bold. Use with DEBUG SHOW IMAGE to visualize your changes.")
 ]
 
 
@@ -74,7 +80,7 @@ class settingsConfig:
                 format = workbook.add_format({'bold': True, 'center_across': True, 'font_color': 'white', 'bg_color': 'gray'})
                 boldformat = workbook.add_format({'bold': True, 'center_across': True, 'font_color': 'white', 'bg_color': 'black'})
                 lightformat = workbook.add_format({'bold': True, 'center_across': True, 'font_color': 'black', 'bg_color': '#DCDCDC', 'border': True})
-                worksheet.set_column(0, 0, 25)
+                worksheet.set_column(0, 0, 35)
                 worksheet.set_column(1, 1, 50)
                 worksheet.set_column(2, 2, 130)
                 worksheet.write(0, 0, "Option", format)
@@ -141,50 +147,10 @@ class settingsConfig:
         # Read the settings file
 
         settings = self.readSettings(wb)
-
-        if not os.path.exists("../Config/token.txt"):
-            stopBot("No auth token exists, run INSTALL_REQUIREMENTS in the Setup folder and authenticate!")
-
-        print(">> Initial Checkup Complete! Connecting to Chat...")
         return settings
 
-    def formatCommandsxlsx(self):
-        try:
-            with xlsxwriter.Workbook('../Config/Commands.xlsx') as workbook:  # FORMATTING
 
-                format = workbook.add_format(
-                    {'bold': True, 'center_across': True, 'font_color': 'white', 'bg_color': 'gray'})
-                lightformat = workbook.add_format(
-                    {'center_across': True, 'font_color': 'black', 'bg_color': '#DCDCDC', 'border': True})
-                evenlighterformat = workbook.add_format(
-                    {'font_color': 'black', 'bg_color': '#f0f0f0', 'border': True})
-                redformat = workbook.add_format({'font_color': 'black', 'bg_color': '#ffdede', 'border': True})
 
-                worksheet = workbook.add_worksheet("Commands")  # FORMAT GLOBAL
-                worksheet.set_column(0, 0, 30)
-                worksheet.set_column(1, 1, 110)
-                worksheet.write(0, 0, "Command", format)
-                worksheet.write(0, 1, "Response", format)
-                worksheet.set_column('B:B', 110, evenlighterformat)
-
-            print("Commands.xlsx has been updated successfully.")
-        except PermissionError:
-            stopBot("Can't open the settings file. Please close it and make sure it's not set to Read Only")
-
-    def readCommands(self):
-        wb = xlrd.open_workbook('../Config/Commands.xlsx')
-        commandsFromFile = {}
-        worksheet = wb.sheet_by_name("Commands")
-
-        for item in range(worksheet.nrows):
-            if item == 0:
-                pass
-            else:
-                command = worksheet.cell_value(item, 0)
-                response = str(worksheet.cell_value(item, 1))
-                commandsFromFile[command] = response
-
-        return commandsFromFile
 
 
 def buildConfig():
@@ -199,11 +165,7 @@ def buildConfig():
         time.sleep(3)
         quit()
 
-    if not os.path.exists('../Config/Commands.xlsx'):
-        settingsConfig.formatCommandsxlsx(settingsConfig())
-        print("\nCommands file has been created.")
-    else:
-        print("Everything is already set up!")
+
 
 
 if GenSettings:
